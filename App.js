@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, TextInput, Button, TouchableOpacity, SafeAreaView } from 'react-native';
+import { StyleSheet, Text, View, TextInput, Button, TouchableOpacity, SafeAreaView, ScrollView, useWindowDimensions } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function App() {
   const [taskList, setTaskList] = useState([]);
   const [newTask, setNewTask] = useState('');
+  const [editMode, setEditMode] = useState(false);
+  const [editIndex, setEditIndex] = useState(null);
+  const windowWidth = useWindowDimensions().width;
 
   useEffect(() => {
     retrieveData();
@@ -35,9 +38,29 @@ export default function App() {
 
   const addTask = () => {
     if (newTask.trim() !== '') {
-      setTaskList([...taskList, newTask]);
+      if (editMode) {
+        const updatedList = [...taskList];
+        updatedList[editIndex].title = newTask;
+        setTaskList(updatedList);
+        setEditMode(false);
+        setEditIndex(null);
+      } else {
+        setTaskList([...taskList, { title: newTask, completed: false }]);
+      }
       setNewTask('');
     }
+  };
+
+  const toggleTaskCompletion = (index) => {
+    const updatedList = [...taskList];
+    updatedList[index].completed = !updatedList[index].completed;
+    setTaskList(updatedList);
+  };
+
+  const editTask = (index) => {
+    setNewTask(taskList[index].title);
+    setEditMode(true);
+    setEditIndex(index);
   };
 
   const deleteTask = (index) => {
@@ -57,18 +80,26 @@ export default function App() {
           value={newTask}
           onChangeText={(text) => setNewTask(text)}
         />
-        <Button title="Aggiungi" onPress={addTask} />
+        <Button title={editMode ? 'Modifica' : 'Aggiungi'} onPress={addTask} />
       </View>
 
-      <View style={styles.taskListContainer}>
+      <ScrollView style={styles.taskListContainer}>
         {taskList.map((task, index) => (
-          <TouchableOpacity key={index} onPress={() => deleteTask(index)}>
-            <View style={styles.taskItem}>
-              <Text>{task}</Text>
+          <TouchableOpacity key={index} onPress={() => toggleTaskCompletion(index)}>
+            <View style={[styles.taskItem, task.completed ? styles.completedTask : null]}>
+              <View style={{ flex: 1, maxWidth: windowWidth - 140 }}>
+                <Text style={task.completed ? styles.completedTaskText : null} numberOfLines={1}>
+                  {task.title}
+                </Text>
+              </View>
+              <View style={styles.buttonContainer}>
+                <Button title="Modifica" onPress={() => editTask(index)} />
+                <Button title="Elimina" onPress={() => deleteTask(index)} />
+              </View>
             </View>
           </TouchableOpacity>
         ))}
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -105,10 +136,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   taskItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 10,
     padding: 10,
     borderWidth: 1,
     borderColor: '#ccc',
     borderRadius: 4,
+  },
+  completedTask: {
+    backgroundColor: '#f2f2f2',
+  },
+  completedTaskText: {
+    textDecorationLine: 'line-through',
+    color: '#888',
+  },
+  buttonContainer: {
+    flexDirection: 'row',
   },
 });
