@@ -1,9 +1,37 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, TextInput, Button, TouchableOpacity, SafeAreaView } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function App() {
   const [taskList, setTaskList] = useState([]);
   const [newTask, setNewTask] = useState('');
+
+  useEffect(() => {
+    retrieveData();
+  }, []);
+
+  useEffect(() => {
+    saveData();
+  }, [taskList]);
+
+  const retrieveData = async () => {
+    try {
+      const storedTaskList = await AsyncStorage.getItem('taskList');
+      if (storedTaskList !== null) {
+        setTaskList(JSON.parse(storedTaskList));
+      }
+    } catch (error) {
+      console.error('Error retrieving data:', error);
+    }
+  };
+
+  const saveData = async () => {
+    try {
+      await AsyncStorage.setItem('taskList', JSON.stringify(taskList));
+    } catch (error) {
+      console.error('Error saving data:', error);
+    }
+  };
 
   const addTask = () => {
     if (newTask.trim() !== '') {
@@ -74,7 +102,7 @@ const styles = StyleSheet.create({
   },
   taskListContainer: {
     flex: 1,
-    paddingHorizontal: 10, // Aggiunta del padding orizzontale al contenitore della lista
+    paddingHorizontal: 10,
   },
   taskItem: {
     marginBottom: 10,
